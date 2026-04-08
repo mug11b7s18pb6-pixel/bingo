@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>共有ビンゴ 参加者</title>
+<style>
+:root{--bg1:#0f172a;--bg2:#1e293b;--line:rgba(255,255,255,0.14);--text:#f8fafc;--muted:#cbd5e1;--blue1:#0ea5e9;--blue2:#0284c7;--green1:#22c55e;--green2:#16a34a;--gray1:#475569;--gray2:#334155;--orange1:#f59e0b;--orange2:#d97706;--red1:#ef4444;--red2:#dc2626;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic UI",sans-serif;color:var(--text);background:radial-gradient(circle at top, rgba(56,189,248,0.18), transparent 35%),linear-gradient(180deg,var(--bg1),var(--bg2));display:flex;align-items:center;justify-content:center;padding:16px}
+.app{width:100%;max-width:520px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));backdrop-filter: blur(12px);box-shadow:0 18px 40px rgba(0,0,0,0.35);padding:18px}
+.title{text-align:center;font-size:1rem;color:var(--muted);margin-bottom:10px;letter-spacing:.08em}
+.panel{border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,0.04);padding:14px;margin-bottom:12px}
+.number-stage{min-height:230px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.number{font-size:clamp(7rem, 36vw, 12rem);font-weight:900;line-height:1;letter-spacing:.04em;text-shadow:0 6px 24px rgba(56,189,248,0.22)}
+.status{margin-top:12px;font-size:.95rem;color:var(--muted);min-height:1.4em}
+.room-status{margin-top:8px;font-size:.82rem;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px} .field:last-child{margin-bottom:0} .field label{font-size:.8rem;color:var(--muted)}
+input[type="text"],input[type="number"]{width:100%;border:1px solid var(--line);background:rgba(255,255,255,0.06);color:var(--text);border-radius:12px;padding:10px 12px;font-size:.95rem}
+button{border:none;border-radius:16px;padding:13px 12px;font-size:.95rem;font-weight:700;color:white;cursor:pointer}
+.primary{background:linear-gradient(180deg,var(--blue1),var(--blue2))} .secondary{background:linear-gradient(180deg,var(--gray1),var(--gray2))}
+.inline{display:flex;gap:10px;align-items:center} .inline>*{flex:1}
+.bingo-head{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px} .bingo-head div{text-align:center;font-weight:900;color:#ffffff;background:linear-gradient(180deg,#0ea5e9,#0369a1);border:1px solid rgba(255,255,255,0.22);border-radius:10px;padding:8px 0;text-shadow:0 1px 3px rgba(0,0,0,0.35);letter-spacing:.08em;box-shadow:0 6px 14px rgba(14,165,233,0.22)}
+.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;position:relative} .cell{aspect-ratio:1 / 1;position:relative;z-index:1;border:1px solid var(--line);background:rgba(255,255,255,0.05);border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:800;font-size:clamp(1rem,4.5vw,1.35rem);padding:4px} .cell.called{background:rgba(34,197,94,0.28);border-color:rgba(34,197,94,0.65)} .cell.free{background:rgba(245,158,11,0.28);border-color:rgba(245,158,11,0.65);font-size:.95rem}
+.history-list{display:grid;grid-template-columns:repeat(auto-fill, minmax(64px, 1fr));gap:8px;max-height:220px;overflow:auto;margin-top:10px} .history-item{border:1px solid var(--line);background:rgba(255,255,255,0.05);border-radius:12px;padding:10px 6px;text-align:center;font-weight:800;font-size:1rem} .history-empty{color:var(--muted);font-size:.85rem;text-align:center;padding:10px 0 4px}
+.meta{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--muted);margin-top:8px;flex-wrap:wrap} .footer{text-align:center;color:var(--muted);font-size:.74rem;margin-top:10px}
+.room-help{font-size:.82rem;color:var(--muted);line-height:1.45}
+.small{padding:10px 12px;font-size:.84rem;border-radius:12px}
+
+.number.pop{animation:pop .32s ease}
+@keyframes pop{
+  0%{transform:scale(.82);opacity:.65}
+  60%{transform:scale(1.08)}
+  100%{transform:scale(1);opacity:1}
+}
+.top-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.room-pill{font-size:.78rem;color:var(--muted)}
+.big-next{width:100%;padding:18px 14px;font-size:1.12rem;border-radius:18px;box-shadow:0 10px 24px rgba(14,165,233,.22)}
+
+
+.bingo-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.18);backdrop-filter:blur(2px);z-index:9999;pointer-events:none}
+.bingo-overlay.show{display:flex;animation:overlayFade 1.6s ease forwards}
+.bingo-burst{padding:22px 30px;border-radius:24px;background:linear-gradient(180deg,#f59e0b,#ef4444);color:#fff;font-size:clamp(2.2rem,11vw,4.6rem);font-weight:900;letter-spacing:.12em;box-shadow:0 18px 40px rgba(239,68,68,.35);transform:scale(.65) rotate(-4deg);text-shadow:0 3px 10px rgba(0,0,0,.25)}
+.bingo-overlay.show .bingo-burst{animation:bingoPop 1.2s ease forwards}
+@keyframes bingoPop{
+  0%{transform:scale(.4) rotate(-8deg);opacity:0}
+  30%{transform:scale(1.12) rotate(2deg);opacity:1}
+  55%{transform:scale(.96) rotate(-1deg)}
+  100%{transform:scale(1) rotate(0deg);opacity:1}
+}
+@keyframes overlayFade{
+  0%{opacity:0}
+  15%{opacity:1}
+  85%{opacity:1}
+  100%{opacity:0}
+}
+
+
+.reach-overlay{position:fixed;left:50%;top:12%;transform:translateX(-50%);display:none;z-index:9998;pointer-events:none}
+.reach-overlay.show{display:block;animation:reachFloat 1.15s ease forwards}
+.reach-badge{padding:12px 18px;border-radius:999px;background:linear-gradient(180deg,#38bdf8,#2563eb);color:#fff;font-size:clamp(1rem,4.2vw,1.5rem);font-weight:900;letter-spacing:.12em;box-shadow:0 12px 28px rgba(37,99,235,.28);text-shadow:0 2px 6px rgba(0,0,0,.25)}
+@keyframes reachFloat{
+  0%{opacity:0;transform:translateX(-50%) translateY(12px) scale(.9)}
+  20%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.04)}
+  80%{opacity:1;transform:translateX(-50%) translateY(-4px) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-12px) scale(.96)}
+}
+
+
+.line-mark{position:absolute;background:linear-gradient(90deg, rgba(239,68,68,0.18), rgba(239,68,68,0.98), rgba(239,68,68,0.18));border-radius:999px;opacity:0.98;box-shadow:0 0 10px rgba(239,68,68,0.45);pointer-events:none;z-index:5;transition:transform .55s ease-out}
+.cell{position:relative}
+
+
+.line-mark{
+  position:absolute;
+  background:linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.95), rgba(239,68,68,0.15));
+  border-radius:999px;
+  opacity:0.95;
+  box-shadow:0 0 10px rgba(239,68,68,0.45);
+  overflow:hidden;
+}
+100%{transform:scaleX(1);}
+}
+
+</style>
+</head>
+<body>
+<main class="app">
+<div class="title">SHARED BINGO VIEWER</div>
+
+<section class="panel">
+  <div class="top-row"><strong>参加者入口</strong><span class="room-pill">閲覧専用</span></div>
+  <div class="field">
+    <label for="roomIdInput">ルームID</label>
+    <div class="inline">
+      <input id="roomIdInput" type="text" placeholder="例: room-001" />
+      <button id="joinBtn" class="primary small" type="button">参加</button>
+    </div>
+  </div>
+  <div class="room-help">主催者から共有されたルームIDで参加してください。URLに <code>?room=xxx</code> が付いていれば自動入力されます。</div>
+
+  <div style="display:none">
+    <input id="minInput" type="number" value="1" />
+    <input id="maxInput" type="number" value="75" />
+    <input id="intervalInput" type="number" value="5" />
+    <input id="uniqueMode" type="checkbox" checked />
+    <button id="resetBtn" type="button"></button>
+    <button id="regenCardsBtn" type="button"></button>
+    <button id="clearHistoryBtn" type="button"></button>
+    <button id="settingsToggleBtn" type="button"></button>
+    <div id="settingsPanel"></div>
+  </div>
+</section>
+
+<section class="panel number-stage">
+  <div id="number" class="number">-</div>
+  <div id="status" class="status">未接続</div>
+  <div id="roomStatus" class="room-status">ルーム未参加</div>
+</section>
+
+<section class="panel">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+    <strong>あなたのビンゴカード</strong>
+    <button id="refreshCardBtn" class="secondary small" type="button">カード再読込</button>
+  </div>
+  <div class="meta"><span id="cardInfo">未参加</span><span id="lineInfo">ライン: 0 / ビンゴ: なし</span></div>
+  <div class="bingo-head"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
+  <div id="bingoGrid" class="bingo-grid"></div>
+</section>
+
+<section class="panel">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+    <strong>出た番号の履歴</strong><span class="room-pill">新しい順</span>
+  </div>
+  <div class="meta"><span id="historyCount">件数: 0</span><span>閲覧専用</span></div>
+  <div id="historyEmpty" class="history-empty">まだ履歴はありません</div>
+  <div id="historyList" class="history-list" style="display:none;"></div>
+</section>
+
+<div class="footer">Firebase設定埋め込み済み / 参加者専用ページ</div>
+
+<div id="reachOverlay" class="reach-overlay"><div id="reachOverlayText" class="reach-badge">REACH!</div></div>
+<div id="bingoOverlay" class="bingo-overlay"><div id="bingoOverlayText" class="bingo-burst">BINGO!</div></div>
+
+</main>
+
+<script type="module">
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD2B71kUHJ_1h1pjr-QuhkG9JZlTGph-0E",
+  authDomain: "b-i-n-g-o-ddeb9.firebaseapp.com",
+  databaseURL: "https://b-i-n-g-o-ddeb9-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "b-i-n-g-o-ddeb9",
+  storageBucket: "b-i-n-g-o-ddeb9.firebasestorage.app",
+  messagingSenderId: "463735318581",
+  appId: "1:463735318581:web:3e2623b24e1fd66231e97c"
+};
+
+let firebaseApp = null;
+let db = null;
+let roomRef = null;
+let roomUnsubscribe = null;
+let timerId = null;
+let remainingNumbers = [];
+let currentHistory = [];
+let currentRoomId = "";
+let roomDataCache = null;
+const clientId = getOrCreateClientId();
+
+let lastLineCount = 0;
+let lastNearCount = 0;
+let hasCardBaseline = false;
+let audioCtx = null;
+
+function unlockAudio() {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch (e) {
+    console.warn(e);
+  }
+}
+function playTone(freq, start, duration, type, volume) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+function playReachSound() {
+  try {
+    unlockAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    playTone(659.25, now, 0.12, "triangle", 0.10);
+    playTone(783.99, now + 0.10, 0.16, "triangle", 0.10);
+  } catch (e) {
+    console.warn(e);
+  }
+}
+function playBingoSound() {
+  try {
+    unlockAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const freqs = [523.25, 659.25, 783.99, 1046.5];
+    freqs.forEach((freq, idx) => {
+      playTone(freq, now + idx * 0.12, 0.28, idx < 2 ? "triangle" : "sine", 0.18);
+    });
+  } catch (e) {
+    console.warn(e);
+  }
+}
+function showReachAnimation(count) {
+  const overlay = document.getElementById("reachOverlay");
+  const text = document.getElementById("reachOverlayText");
+  if (!overlay || !text) return;
+  text.textContent = count > 1 ? "REACH x" + count : "REACH!";
+  overlay.classList.remove("show");
+  void overlay.offsetWidth;
+  overlay.classList.add("show");
+  setTimeout(() => overlay.classList.remove("show"), 1150);
+}
+function showBingoAnimation(lines) {
+  const overlay = document.getElementById("bingoOverlay");
+  const text = document.getElementById("bingoOverlayText");
+  if (!overlay || !text) return;
+  text.textContent = lines > 1 ? "BINGO x" + lines : "BINGO!";
+  overlay.classList.remove("show");
+  void overlay.offsetWidth;
+  overlay.classList.add("show");
+  setTimeout(() => overlay.classList.remove("show"), 1600);
+}
+function celebrateReach(count) {
+  showReachAnimation(count);
+  playReachSound();
+}
+function celebrateBingo(lines) {
+  showBingoAnimation(lines);
+  playBingoSound();
+}
+function analyzeCardProgress(card, calledSet) {
+  if (!Array.isArray(card) || card.length !== 25) return { lines: 0, near: 0 };
+  const marked = card.map((v, i) => i === 12 || calledSet.has(v));
+  const patterns = [
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+    [0,6,12,18,24],[4,8,12,16,20]
+  ];
+  let lines = 0;
+  let near = 0;
+  patterns.forEach(line => {
+    const markedCount = line.filter(idx => marked[idx]).length;
+    if (markedCount === 5) lines++;
+    else if (markedCount === 4) near++;
+  });
+  return { lines, near };
+}
+
+
+const numberEl = document.getElementById("number");
+const statusEl = document.getElementById("status");
+const roomStatusEl = document.getElementById("roomStatus");
+const roomIdInput = document.getElementById("roomIdInput");
+const joinBtn = document.getElementById("joinBtn");
+const minInput = document.getElementById("minInput");
+const maxInput = document.getElementById("maxInput");
+const intervalInput = document.getElementById("intervalInput");
+const uniqueModeEl = document.getElementById("uniqueMode");
+const resetBtn = document.getElementById("resetBtn");
+const regenCardsBtn = document.getElementById("regenCardsBtn");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const refreshCardBtn = document.getElementById("refreshCardBtn");
+const settingsToggleBtn = document.getElementById("settingsToggleBtn");
+const settingsPanel = document.getElementById("settingsPanel");
+const historyList = document.getElementById("historyList");
+const historyEmpty = document.getElementById("historyEmpty");
+const historyCount = document.getElementById("historyCount");
+const bingoGrid = document.getElementById("bingoGrid");
+const cardInfo = document.getElementById("cardInfo");
+const lineInfo = document.getElementById("lineInfo");
+
+function pulseNumber() {
+  numberEl.classList.remove("pop");
+  void numberEl.offsetWidth;
+  numberEl.classList.add("pop");
+}
+function setStatus(text) { statusEl.textContent = text; }
+function setRoomStatus(text) { roomStatusEl.textContent = text; }
+
+function getOrCreateClientId() {
+  const key = "sharedBingoClientId";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = "client-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+function sanitizeRange() {
+  let min = parseInt(minInput.value, 10);
+  let max = parseInt(maxInput.value, 10);
+  if (isNaN(min)) min = 1;
+  if (isNaN(max)) max = 75;
+  if (min > max) [min, max] = [max, min];
+  minInput.value = String(min);
+  maxInput.value = String(max);
+  return { min, max };
+}
+function getIntervalSec() {
+  let seconds = parseInt(intervalInput.value, 10);
+  if (isNaN(seconds) || seconds < 1) seconds = 1;
+  if (seconds > 3600) seconds = 3600;
+  intervalInput.value = String(seconds);
+  return seconds;
+}
+function getRangeArray(min, max) {
+  const arr = [];
+  for (let i = min; i <= max; i++) arr.push(i);
+  return arr;
+}
+function refillNumbers() {
+  const { min, max } = sanitizeRange();
+  remainingNumbers = getRangeArray(min, max);
+}
+function getNormalRandomNumber() {
+  const { min, max } = sanitizeRange();
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function getUniqueRandomNumber() {
+  if (remainingNumbers.length === 0) refillNumbers();
+  const index = Math.floor(Math.random() * remainingNumbers.length);
+  const value = remainingNumbers[index];
+  remainingNumbers.splice(index, 1);
+  return value;
+}
+function generateCalledNumber() {
+  return uniqueModeEl.checked ? getUniqueRandomNumber() : getNormalRandomNumber();
+}
+function renderHistory(list) {
+  const arr = Array.isArray(list) ? list : [];
+  currentHistory = arr;
+  historyCount.textContent = "件数: " + arr.length;
+  if (arr.length === 0) {
+    historyEmpty.style.display = "block";
+    historyList.style.display = "none";
+    historyList.innerHTML = "";
+    return;
+  }
+  historyEmpty.style.display = "none";
+  historyList.style.display = "grid";
+  historyList.innerHTML = arr.map(v => '<div class="history-item">' + v + '</div>').join("");
+}
+function countLines(card, calledSet) {
+  if (!Array.isArray(card) || card.length !== 25) return 0;
+  const marked = card.map((v, i) => i === 12 || calledSet.has(v));
+  const lines = [
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+    [0,6,12,18,24],[4,8,12,16,20]
+  ];
+  return lines.filter(line => line.every(idx => marked[idx])).length;
+}
+
+
+function drawWinningLines(card, calledSet){
+  const patterns = [
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+    [0,6,12,18,24],[4,8,12,16,20]
+  ];
+  const grid = document.getElementById("bingoGrid");
+  if (!grid || !Array.isArray(card) || card.length !== 25) return;
+
+  grid.querySelectorAll(".line-mark").forEach(el => el.remove());
+
+  const marked = card.map((v, i) => i === 12 || calledSet.has(v));
+  const gridRect = grid.getBoundingClientRect();
+
+  patterns.forEach((line) => {
+    if (!line.every(idx => marked[idx])) return;
+
+    const first = grid.children[line[0]];
+    const last = grid.children[line[4]];
+    if (!first || !last) return;
+
+    const rect1 = first.getBoundingClientRect();
+    const rect2 = last.getBoundingClientRect();
+
+    const x1 = rect1.left + rect1.width / 2 - gridRect.left;
+    const y1 = rect1.top + rect1.height / 2 - gridRect.top;
+    const x2 = rect2.left + rect2.width / 2 - gridRect.left;
+    const y2 = rect2.top + rect2.height / 2 - gridRect.top;
+
+    const length = Math.hypot(x2 - x1, y2 - y1);
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+
+    const lineEl = document.createElement("div");
+    lineEl.className = "line-mark";
+    lineEl.style.width = length + "px";
+    lineEl.style.height = "6px";
+    lineEl.style.left = x1 + "px";
+    lineEl.style.top = y1 + "px";
+    lineEl.style.transformOrigin = "0 50%";
+    lineEl.style.transform = "rotate(" + angle + "rad) scaleX(0)";
+    grid.appendChild(lineEl);
+
+    requestAnimationFrame(() => {
+      lineEl.style.transform = "rotate(" + angle + "rad) scaleX(1)";
+    });
+  });
+}
+
+function renderBingoCard(card) {
+  bingoGrid.innerHTML = "";
+  if (!Array.isArray(card) || card.length !== 25) {
+    for (let i = 0; i < 25; i++) {
+      const div = document.createElement("div");
+      div.className = "cell";
+      div.textContent = i === 12 ? "FREE" : "-";
+      if (i === 12) div.classList.add("free");
+      bingoGrid.appendChild(div);
+    }
+    cardInfo.textContent = "カード未取得";
+    lineInfo.textContent = "ライン: 0 / リーチ: 0 / ビンゴ: なし";
+    return;
+  }
+  const calledSet = new Set(currentHistory);
+  card.forEach((value, idx) => {
+    const div = document.createElement("div");
+    div.className = "cell";
+    if (idx === 12) {
+      div.textContent = "FREE";
+      div.classList.add("free");
+    } else {
+      div.textContent = String(value);
+      if (calledSet.has(value)) div.classList.add("called");
+    }
+    bingoGrid.appendChild(div);
+  });
+  const progress = analyzeCardProgress(card, calledSet);
+  const lines = progress.lines;
+  const near = progress.near;
+  cardInfo.textContent = "参加者ID: " + clientId.slice(-8);
+  lineInfo.textContent = "ライン: " + lines + " / リーチ: " + near + " / ビンゴ: " + (lines > 0 ? "あり" : "なし");
+  drawWinningLines(card, calledSet);
+  if (!hasCardBaseline) {
+    lastLineCount = lines;
+    lastNearCount = near;
+    hasCardBaseline = true;
+  } else {
+    if (lines > lastLineCount && lines > 0) {
+      celebrateBingo(lines);
+    } else if (near > lastNearCount && near > 0) {
+      celebrateReach(near);
+    }
+    lastLineCount = lines;
+    lastNearCount = near;
+  }
+}
+function saveLocalSettings(pageType) {
+  localStorage.setItem("sharedBingoAppConfig-" + pageType, JSON.stringify({
+    roomId: roomIdInput.value
+  }));
+}
+function loadLocalSettings(pageType) {
+  const raw = localStorage.getItem("sharedBingoAppConfig-" + pageType);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    if (data.roomId) roomIdInput.value = data.roomId;
+  } catch (e) {
+    console.warn(e);
+  }
+}
+function loadRoomIdFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const room = params.get("room");
+  if (room) roomIdInput.value = room;
+}
+function hashString(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+  }
+  return h >>> 0;
+}
+function mulberry32(seed) {
+  return function() {
+    let t = seed += 1831565813;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffleWithSeed(array, seed) {
+  const arr = array.slice();
+  const rand = mulberry32(seed);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function buildCardFromNumbers(numbers) {
+  const card = new Array(25).fill(null);
+  let ptr = 0;
+  for (let i = 0; i < 25; i++) card[i] = i === 12 ? "FREE" : numbers[ptr++];
+  return card;
+}
+function serializeCard(card) { return JSON.stringify(card); }
+function extractExistingSignatures(participants) {
+  const set = new Set();
+  if (!participants || typeof participants !== "object") return set;
+  Object.values(participants).forEach(p => { if (p && Array.isArray(p.card)) set.add(serializeCard(p.card)); });
+  return set;
+}
+function createUniqueCard(roomId, min, max, existing, version, startNonce = 0) {
+  const pool = getRangeArray(min, max);
+  if (pool.length < 24) throw new Error("カード作成には最低24個の数字が必要です");
+  for (let nonce = startNonce; nonce < startNonce + 5000; nonce++) {
+    const seed = hashString(roomId + "|" + clientId + "|" + version + "|" + nonce);
+    const shuffled = shuffleWithSeed(pool, seed);
+    const picked = shuffled.slice(0, 24);
+    const posSeed = hashString("pos|" + roomId + "|" + clientId + "|" + version + "|" + nonce);
+    const positioned = shuffleWithSeed(picked, posSeed);
+    const card = buildCardFromNumbers(positioned);
+    const signature = serializeCard(card);
+    if (!existing.has(signature)) return { card, signature };
+  }
+  throw new Error("一意なカードを生成できませんでした");
+}
+async function initFirebase() {
+  try {
+    const appModule = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js");
+    const dbModule = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js");
+    if (!firebaseApp) {
+      firebaseApp = appModule.initializeApp(FIREBASE_CONFIG);
+      db = dbModule.getDatabase(firebaseApp);
+      window.__firebaseDbModule = dbModule;
+    }
+    setStatus("Firebase接続済み");
+    return true;
+  } catch (e) {
+    console.error(e);
+    setStatus("Firebase接続失敗: " + (e.message || e));
+    return false;
+  }
+}
+async function ensureOwnCard() {
+  if (!roomDataCache || !roomRef) return;
+  const { min = 1, max = 75, cardVersion = 1, participants = {} } = roomDataCache;
+  const self = participants[clientId];
+  if (self && Array.isArray(self.card) && self.card.length === 25 && self.cardVersion === cardVersion) {
+    renderBingoCard(self.card);
+    return;
+  }
+  const existing = extractExistingSignatures(participants);
+  const result = createUniqueCard(currentRoomId, min, max, existing, cardVersion);
+  const { update } = window.__firebaseDbModule;
+  await update(roomRef, {
+    ["participants/" + clientId]: {
+      joinedAt: Date.now(),
+      card: result.card,
+      cardVersion,
+      signature: result.signature
+    }
+  });
+  renderBingoCard(result.card);
+}
+async function commonJoinRoom() {
+  const ok = await initFirebase();
+  if (!ok) return false;
+  const roomId = roomIdInput.value.trim();
+  if (!roomId) {
+    setStatus("ルームIDを入力してください");
+    return false;
+  }
+  currentRoomId = roomId;
+  const { ref, onValue, get, update } = window.__firebaseDbModule;
+  if (roomRef && roomUnsubscribe) { roomUnsubscribe(); roomUnsubscribe = null; }
+  roomRef = ref(db, "sharedBingoRooms/" + roomId);
+  const first = await get(roomRef);
+  if (!first.exists()) {
+    const { min, max } = sanitizeRange();
+    if (max - min + 1 < 24) {
+      setStatus("範囲が狭すぎます。最低24個必要です");
+      return false;
+    }
+    await update(roomRef, {
+      min, max, intervalSec: getIntervalSec(), uniqueMode: uniqueModeEl.checked,
+      history: [], currentNumber: null, isRunning: false, cardVersion: 1, participants: {}, updatedAt: Date.now()
+    });
+  }
+  roomUnsubscribe = onValue(roomRef, async snapshot => {
+    const data = snapshot.val();
+    roomDataCache = data;
+    if (!data) {
+      numberEl.textContent = "-";
+      renderHistory([]);
+      renderBingoCard(null);
+      setRoomStatus("ルーム: " + roomId + "（未初期化）");
+      return;
+    }
+    numberEl.textContent = data.currentNumber == null ? "-" : String(data.currentNumber);
+    pulseNumber();
+    renderHistory(Array.isArray(data.history) ? data.history : []);
+    const mode = data.uniqueMode ? "重複なし" : "通常";
+    const running = data.isRunning ? "動作中" : "停止中";
+    setRoomStatus("ルーム: " + roomId + " / " + (data.min ?? 1) + "〜" + (data.max ?? 75) + " / " + (data.intervalSec ?? 5) + "秒 / " + mode);
+    const self = data.participants && data.participants[clientId];
+    if (self && Array.isArray(self.card)) {
+      renderBingoCard(self.card);
+    } else {
+      try { await ensureOwnCard(); } catch (e) { console.error(e); setStatus("カード取得失敗: " + (e.message || e)); }
+    }
+    onRoomUpdate(data, running);
+  }, error => {
+    console.error(error);
+    setStatus("ルーム購読失敗");
+  });
+  setRoomStatus("ルーム: " + roomId);
+  return true;
+}
+function clearTimer() {
+  if (timerId !== null) { clearInterval(timerId); timerId = null; }
+}
+async function writeRoomState(patch) {
+  if (!db || !roomRef) return;
+  const { update } = window.__firebaseDbModule;
+  await update(roomRef, patch);
+}
+function buildNextHistory(nextNumber) { return [nextNumber, ...currentHistory].slice(0, 300); }
+function buildRoomState(nextNumber, isRunning) {
+  const { min, max } = sanitizeRange();
+  return {
+    currentNumber: nextNumber, min, max, intervalSec: getIntervalSec(),
+    uniqueMode: uniqueModeEl.checked, remainingNumbers: uniqueModeEl.checked ? remainingNumbers : [],
+    history: buildNextHistory(nextNumber), isRunning, updatedAt: Date.now()
+  };
+}
+async function pushNextNumber(isRunningOverride = true) {
+  if (!roomRef) {
+    setStatus("先にルームに参加してください");
+    return;
+  }
+  const r = sanitizeRange();
+  if (r.max - r.min + 1 < 24) {
+    setStatus("範囲が狭すぎます。最低24個必要です");
+    return;
+  }
+  const next = generateCalledNumber();
+  const state = buildRoomState(next, isRunningOverride);
+  await writeRoomState(state);
+  numberEl.textContent = String(next);
+  pulseNumber();
+  renderHistory(state.history);
+}
+async function resetUniqueState() {
+  refillNumbers();
+  if (roomRef) {
+    const r = sanitizeRange();
+    await writeRoomState({
+      min: r.min, max: r.max, intervalSec: getIntervalSec(),
+      uniqueMode: uniqueModeEl.checked, remainingNumbers: uniqueModeEl.checked ? remainingNumbers : [],
+      updatedAt: Date.now()
+    });
+  }
+  setStatus("番号候補をリセットしました");
+}
+async function clearSharedHistory() {
+  if (!roomRef) {
+    setStatus("先にルームに参加してください");
+    return;
+  }
+  await writeRoomState({ history: [], currentNumber: null, updatedAt: Date.now() });
+  renderHistory([]);
+  numberEl.textContent = "-";
+  setStatus("共有履歴をクリアしました");
+}
+async function regenerateAllCards() {
+  if (!roomRef) {
+    setStatus("先にルームに参加してください");
+    return;
+  }
+  const { min, max } = sanitizeRange();
+  if (max - min + 1 < 24) {
+    setStatus("ビンゴカード作成には最低24個の数字が必要です");
+    return;
+  }
+  const next = ((roomDataCache && roomDataCache.cardVersion) || 1) + 1;
+  await writeRoomState({ min, max, cardVersion: next, participants: {}, updatedAt: Date.now() });
+  setStatus("全参加者のカードを再配布します");
+}
+async function reloadOwnCard() {
+  if (!roomRef || !roomDataCache) {
+    setStatus("先にルームに参加してください");
+    return;
+  }
+  await ensureOwnCard();
+  setStatus("カードを再読込しました");
+}
+
+function onRoomUpdate(data, running) {
+  setStatus("閲覧中（" + running + "）");
+}
+async function viewerJoin() {
+  const ok = await commonJoinRoom();
+  if (ok) {
+    saveLocalSettings("viewer");
+    setStatus("参加済み");
+  }
+}
+unlockAudio();
+joinBtn.addEventListener("click", () => viewerJoin().catch(e => { console.error(e); setStatus("参加エラー"); }));
+unlockAudio();
+refreshCardBtn.addEventListener("click", () => reloadOwnCard().catch(e => { console.error(e); setStatus("カード再読込エラー"); }));
+renderHistory([]); renderBingoCard(null); loadRoomIdFromUrl(); loadLocalSettings("viewer");
+if (roomIdInput.value.trim()) viewerJoin().catch(e => { console.error(e); setStatus("初期参加エラー"); });
+window.addEventListener("beforeunload", () => { clearTimer(); if (roomRef && roomUnsubscribe) roomUnsubscribe(); });
+</script>
+</body>
+</html>
