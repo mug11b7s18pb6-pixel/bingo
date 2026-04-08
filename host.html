@@ -1,53 +1,5 @@
 <!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Host (Protected)</title>
-</head>
-<body>
-
-<div id="auth" style="position:fixed;inset:0;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;z-index:9999">
-  <div>
-    <h2>主催者ログイン</h2>
-    <input id="pw" type="password" placeholder="パスワード">
-    <button onclick="login()">ログイン</button>
-  </div>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
-
-
-const firebaseConfig = {
-  apiKey: "AIzaSyD2B71kUHJ_1h1pjr-QuhkG9JZlTGph-0E",
-  authDomain: "b-i-n-g-o-ddeb9.firebaseapp.com",
-  databaseURL: "https://b-i-n-g-o-ddeb9-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "b-i-n-g-o-ddeb9",
-  storageBucket: "b-i-n-g-o-ddeb9.firebasestorage.app",
-  messagingSenderId: "463735318581",
-  appId: "1:463735318581:web:3e2623b24e1fd66231e97c"
-};
-
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-const params = new URLSearchParams(location.search);
-const roomId = params.get("room");
-
-window.login = function(){
-  const input = document.getElementById("pw").value;
-  get(ref(db, "rooms/" + roomId + "/password")).then(snap=>{
-    if(input === snap.val()){
-      document.getElementById("auth").style.display = "none";
-    }else{
-      alert("パスワード違う");
-    }
-  });
-};
-</script>
-
+<html lang="ja">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -132,10 +84,51 @@ button{border:none;border-radius:16px;padding:13px 12px;font-size:.95rem;font-we
 100%{transform:scaleX(1);}
 }
 
+
+html,body{margin:0;padding:0;min-height:100%;overflow-x:hidden}
+body{overflow-x:hidden}
+.auth-screen{
+  position:fixed; inset:0; z-index:99999;
+  display:flex; align-items:center; justify-content:center;
+  padding:16px;
+  background:rgba(2,6,23,.94);
+  backdrop-filter:blur(10px);
+}
+.auth-card{
+  width:min(92vw, 360px);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:24px;
+  background:rgba(30,41,59,.96);
+  box-shadow:0 18px 40px rgba(0,0,0,.45);
+  padding:20px;
+}
+.auth-title{font-size:1.1rem;font-weight:800;text-align:center;margin-bottom:8px}
+.auth-note{font-size:.86rem;color:var(--muted);line-height:1.6;text-align:center;margin-bottom:14px}
+.auth-error{font-size:.82rem;color:#fecaca;min-height:1.2em;margin-top:10px;text-align:center}
+#appRoot{display:none}
+
 </style>
 </head>
+
 <body>
-<main class="app">
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-title">主催者ログイン</div>
+    <div class="auth-note">ルームIDと主催者パスワードを入力してください。</div>
+    <div class="field">
+      <label for="authRoom">ルームID</label>
+      <input id="authRoom" type="text" placeholder="例: dcr" />
+    </div>
+    <div class="field">
+      <label for="authPassword">主催者パスワード</label>
+      <input id="authPassword" type="password" placeholder="パスワード" />
+    </div>
+    <button id="authLoginBtn" class="primary" type="button">ログインして主催者画面を開く</button>
+    <div id="authError" class="auth-error"></div>
+  </div>
+</div>
+
+<main id="appRoot" class="app">
 <div class="title">SHARED BINGO HOST</div>
 
 <section class="panel">
@@ -346,6 +339,47 @@ const historyCount = document.getElementById("historyCount");
 const bingoGrid = document.getElementById("bingoGrid");
 const cardInfo = document.getElementById("cardInfo");
 const lineInfo = document.getElementById("lineInfo");
+const appRoot = document.getElementById("appRoot");
+const authScreen = document.getElementById("authScreen");
+const authRoom = document.getElementById("authRoom");
+const authPassword = document.getElementById("authPassword");
+const authLoginBtn = document.getElementById("authLoginBtn");
+const authError = document.getElementById("authError");
+
+function setAuthError(text){ authError.textContent = text || ""; }
+
+async function hostPasswordLogin(){
+  const room = authRoom.value.trim();
+  const pw = authPassword.value;
+  if(!room){ setAuthError("ルームIDを入力してください"); return; }
+  if(!pw){ setAuthError("パスワードを入力してください"); return; }
+  authLoginBtn.disabled = true;
+  setAuthError("");
+  const ok = await initFirebase();
+  if(!ok){ setAuthError("Firebase接続に失敗しました"); authLoginBtn.disabled = false; return; }
+  try{
+    const { ref, get } = window.__firebaseDbModule;
+    const snap = await get(ref(db, "sharedBingoRooms/" + room + "/hostPassword"));
+    if(!snap.exists()){
+      setAuthError("主催者パスワードが未設定です");
+      return;
+    }
+    if(snap.val() !== pw){
+      setAuthError("パスワード違う");
+      return;
+    }
+    roomIdInput.value = room;
+    authScreen.style.display = "none";
+    appRoot.style.display = "block";
+    await hostJoin();
+  }catch(e){
+    console.error(e);
+    setAuthError("ログインに失敗しました");
+  }finally{
+    authLoginBtn.disabled = false;
+  }
+}
+
 
 function pulseNumber() {
   numberEl.classList.remove("pop");
@@ -815,7 +849,12 @@ settingsToggleBtn.addEventListener("click", () => {
   settingsToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
 });
 renderHistory([]); renderBingoCard(null); loadRoomIdFromUrl(); loadLocalSettings("host");
-if (roomIdInput.value.trim()) hostJoin().catch(e => { console.error(e); setStatus("初期参加エラー"); });
+authRoom.value = roomIdInput.value || "";
+authLoginBtn.addEventListener("click", () => hostPasswordLogin());
+authPassword.addEventListener("keydown", (e) => { if(e.key === "Enter") hostPasswordLogin(); });
+authRoom.addEventListener("keydown", (e) => { if(e.key === "Enter") hostPasswordLogin(); });
+
+
 window.addEventListener("beforeunload", () => { clearTimer(); if (roomRef && roomUnsubscribe) roomUnsubscribe(); });
 </script>
 </body>
