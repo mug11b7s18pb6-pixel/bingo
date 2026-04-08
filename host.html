@@ -1,5 +1,53 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Host (Protected)</title>
+</head>
+<body>
+
+<div id="auth" style="position:fixed;inset:0;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;z-index:9999">
+  <div>
+    <h2>主催者ログイン</h2>
+    <input id="pw" type="password" placeholder="パスワード">
+    <button onclick="login()">ログイン</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD2B71kUHJ_1h1pjr-QuhkG9JZlTGph-0E",
+  authDomain: "b-i-n-g-o-ddeb9.firebaseapp.com",
+  databaseURL: "https://b-i-n-g-o-ddeb9-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "b-i-n-g-o-ddeb9",
+  storageBucket: "b-i-n-g-o-ddeb9.firebasestorage.app",
+  messagingSenderId: "463735318581",
+  appId: "1:463735318581:web:3e2623b24e1fd66231e97c"
+};
+
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const params = new URLSearchParams(location.search);
+const roomId = params.get("room");
+
+window.login = function(){
+  const input = document.getElementById("pw").value;
+  get(ref(db, "rooms/" + roomId + "/password")).then(snap=>{
+    if(input === snap.val()){
+      document.getElementById("auth").style.display = "none";
+    }else{
+      alert("パスワード違う");
+    }
+  });
+};
+</script>
+
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
