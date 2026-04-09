@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>共有ビンゴ 参加者（紙カード取込対応）</title>
+<style>
+:root{--bg1:#0f172a;--bg2:#1e293b;--line:rgba(255,255,255,0.14);--text:#f8fafc;--muted:#cbd5e1;--blue1:#0ea5e9;--blue2:#0284c7;--green1:#22c55e;--gray1:#475569;--gray2:#334155;--orange1:#f59e0b;--red1:#ef4444;--panel:rgba(255,255,255,0.04)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Yu Gothic UI",sans-serif;color:var(--text);background:radial-gradient(circle at top, rgba(56,189,248,0.18), transparent 35%),linear-gradient(180deg,var(--bg1),var(--bg2));display:flex;align-items:center;justify-content:center;padding:16px}
+.app{width:100%;max-width:540px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));backdrop-filter: blur(12px);box-shadow:0 18px 40px rgba(0,0,0,0.35);padding:18px}
+.title{text-align:center;font-size:1rem;color:var(--muted);margin-bottom:10px;letter-spacing:.08em}
+.panel{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:14px;margin-bottom:12px}
+.number-stage{min-height:220px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.number{font-size:clamp(7rem,36vw,12rem);font-weight:900;line-height:1;letter-spacing:.04em;text-shadow:0 6px 24px rgba(56,189,248,0.22)}
+.number.pop{animation:pop .32s ease}
+@keyframes pop{0%{transform:scale(.82);opacity:.65}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.status{margin-top:12px;font-size:.95rem;color:var(--muted);min-height:1.4em}
+.room-status{margin-top:8px;font-size:.82rem;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.field:last-child{margin-bottom:0}.field label{font-size:.8rem;color:var(--muted)}
+input[type="text"],input[type="number"]{width:100%;border:1px solid var(--line);background:rgba(255,255,255,0.06);color:var(--text);border-radius:12px;padding:10px 12px;font-size:.95rem}
+input.card-cell-input{text-align:center;font-weight:800;padding:8px 4px}
+button{border:none;border-radius:16px;padding:13px 12px;font-size:.95rem;font-weight:700;color:white;cursor:pointer}
+.primary{background:linear-gradient(180deg,var(--blue1),var(--blue2))}.secondary{background:linear-gradient(180deg,var(--gray1),var(--gray2))}.success{background:linear-gradient(180deg,var(--green1),#16a34a))}
+.small{padding:10px 12px;font-size:.84rem;border-radius:12px}
+.inline{display:flex;gap:10px;align-items:center}.inline>*{flex:1}
+.bingo-head{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px}
+.bingo-head div{text-align:center;font-weight:900;color:#ffffff;background:linear-gradient(180deg,#0ea5e9,#0369a1);border:1px solid rgba(255,255,255,0.22);border-radius:10px;padding:8px 0;text-shadow:0 1px 3px rgba(0,0,0,0.35)}
+.bingo-grid,.card-input-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;position:relative}
+.cell{aspect-ratio:1/1;border:1px solid var(--line);background:rgba(255,255,255,0.05);border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:800;font-size:clamp(1rem,4.5vw,1.35rem);padding:4px;position:relative;z-index:1}
+.cell.called{background:rgba(34,197,94,0.28);border-color:rgba(34,197,94,0.65)}.cell.free{background:rgba(245,158,11,0.28);border-color:rgba(245,158,11,0.65);font-size:.95rem}
+.meta{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.history-list{display:grid;grid-template-columns:repeat(auto-fill, minmax(64px,1fr));gap:8px;max-height:220px;overflow:auto;margin-top:10px}
+.history-item{border:1px solid var(--line);background:rgba(255,255,255,0.05);border-radius:12px;padding:10px 6px;text-align:center;font-weight:800;font-size:1rem}
+.history-empty{color:var(--muted);font-size:.85rem;text-align:center;padding:10px 0 4px}
+.room-help,.note,.footer{font-size:.82rem;color:var(--muted);line-height:1.5}
+.preview-wrap{display:none;margin-top:10px}.preview-wrap img{width:100%;max-height:260px;object-fit:contain;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,0.04)}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.08);font-size:.75rem;color:var(--muted)}
+.line-overlay{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible}.line-svg{width:100%;height:100%;overflow:visible}
+.line-svg line{stroke:#ef4444;stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 8px rgba(239,68,68,.65));stroke-dasharray:1;stroke-dashoffset:1;animation:svgLineDraw .55s ease-out forwards}
+@keyframes svgLineDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.reach-overlay{position:fixed;left:50%;top:12%;transform:translateX(-50%);display:none;z-index:9998;pointer-events:none}.reach-overlay.show{display:block;animation:reachFloat 1.15s ease forwards}
+.reach-badge{padding:12px 18px;border-radius:999px;background:linear-gradient(180deg,#38bdf8,#2563eb);color:#fff;font-size:clamp(1rem,4.2vw,1.5rem);font-weight:900;letter-spacing:.12em;box-shadow:0 12px 28px rgba(37,99,235,.28);text-shadow:0 2px 6px rgba(0,0,0,.25)}
+@keyframes reachFloat{0%{opacity:0;transform:translateX(-50%) translateY(12px) scale(.9)}20%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.04)}80%{opacity:1;transform:translateX(-50%) translateY(-4px) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-12px) scale(.96)}}
+.bingo-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.18);backdrop-filter:blur(2px);z-index:9999;pointer-events:none}.bingo-overlay.show{display:flex;animation:overlayFade 1.6s ease forwards}
+.bingo-burst{padding:22px 30px;border-radius:24px;background:linear-gradient(180deg,#f59e0b,#ef4444);color:#fff;font-size:clamp(2.2rem,11vw,4.6rem);font-weight:900;letter-spacing:.12em;box-shadow:0 18px 40px rgba(239,68,68,.35);transform:scale(.65) rotate(-4deg);text-shadow:0 3px 10px rgba(0,0,0,.25)}
+.bingo-overlay.show .bingo-burst{animation:bingoPop 1.2s ease forwards}
+@keyframes bingoPop{0%{transform:scale(.4) rotate(-8deg);opacity:0}30%{transform:scale(1.12) rotate(2deg);opacity:1}55%{transform:scale(.96) rotate(-1deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
+@keyframes overlayFade{0%{opacity:0}15%{opacity:1}85%{opacity:1}100%{opacity:0}}
+</style>
+</head>
+<body>
+<main class="app">
+<div class="title">SHARED BINGO VIEWER</div>
+<section class="panel">
+  <div class="field"><label for="roomIdInput">ルームID</label><div class="inline"><input id="roomIdInput" type="text" placeholder="例: dcr" /><button id="joinBtn" class="primary small" type="button">参加</button></div></div>
+  <div class="room-help">主催者から共有されたルームIDで参加してください。URLに <code>?room=xxx</code> が付いていれば自動入力されます。</div>
+</section>
+<section class="panel number-stage">
+  <div id="number" class="number">-</div><div id="status" class="status">未接続</div><div id="roomStatus" class="room-status">ルーム未参加</div>
+</section>
+<section class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><strong>紙のカードを反映</strong><span class="badge">閲覧者用 試作</span></div>
+  <div class="note">今回は試作として、写真を確認しながら手入力で反映する方式です。自動OCRはまだ入れていません。</div>
+  <div class="field" style="margin-top:10px;"><label for="paperImageInput">紙カードの写真</label><input id="paperImageInput" type="file" accept="image/*" capture="environment" /></div>
+  <div id="previewWrap" class="preview-wrap"><img id="paperPreview" alt="紙カードプレビュー" /></div>
+  <div class="note">写真は確認用です。下の25マスに紙カードの数字を入力してください。中央はFREE固定です。</div>
+  <div class="bingo-head" style="margin-top:10px;"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
+  <div id="cardInputGrid" class="card-input-grid"></div>
+  <div class="inline" style="margin-top:10px;"><button id="applyPaperCardBtn" class="success small" type="button">この内容でカード反映</button><button id="clearPaperCardBtn" class="secondary small" type="button">入力クリア</button></div>
+</section>
+<section class="panel">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><strong>あなたのビンゴカード</strong><button id="refreshCardBtn" class="secondary small" type="button">カード再読込</button></div>
+  <div class="meta"><span id="cardInfo">未参加</span><span id="lineInfo">ライン: 0 / リーチ: 0 / ビンゴ: なし</span></div>
+  <div class="bingo-head"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
+  <div id="bingoGrid" class="bingo-grid"></div>
+</section>
+<section class="panel">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><strong>出た番号の履歴</strong><span class="badge">新しい順</span></div>
+  <div class="meta"><span id="historyCount">件数: 0</span><span>閲覧専用</span></div>
+  <div id="historyEmpty" class="history-empty">まだ履歴はありません</div>
+  <div id="historyList" class="history-list" style="display:none;"></div>
+</section>
+<div class="footer">Firebase設定埋め込み済み / 紙カード手入力取込つき</div>
+</main>
+<div id="reachOverlay" class="reach-overlay"><div id="reachOverlayText" class="reach-badge">REACH!</div></div>
+<div id="bingoOverlay" class="bingo-overlay"><div id="bingoOverlayText" class="bingo-burst">BINGO!</div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+
+const FIREBASE_CONFIG = {apiKey:"AIzaSyD2B71kUHJ_1h1pjr-QuhkG9JZlTGph-0E",authDomain:"b-i-n-g-o-ddeb9.firebaseapp.com",databaseURL:"https://b-i-n-g-o-ddeb9-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"b-i-n-g-o-ddeb9",storageBucket:"b-i-n-g-o-ddeb9.firebasestorage.app",messagingSenderId:"463735318581",appId:"1:463735318581:web:3e2623b24e1fd66231e97c"};
+const firebaseApp = initializeApp(FIREBASE_CONFIG);
+const db = getDatabase(firebaseApp);
+
+let roomRef = null, roomUnsubscribe = null, currentHistory = [], currentRoomId = "", roomDataCache = null;
+const clientId = getOrCreateClientId();
+let lastLineCount = 0, lastNearCount = 0, hasCardBaseline = false, audioCtx = null;
+
+const numberEl = document.getElementById("number"), statusEl = document.getElementById("status"), roomStatusEl = document.getElementById("roomStatus");
+const roomIdInput = document.getElementById("roomIdInput"), joinBtn = document.getElementById("joinBtn");
+const historyList = document.getElementById("historyList"), historyEmpty = document.getElementById("historyEmpty"), historyCount = document.getElementById("historyCount");
+const bingoGrid = document.getElementById("bingoGrid"), cardInfo = document.getElementById("cardInfo"), lineInfo = document.getElementById("lineInfo"), refreshCardBtn = document.getElementById("refreshCardBtn");
+const cardInputGrid = document.getElementById("cardInputGrid"), applyPaperCardBtn = document.getElementById("applyPaperCardBtn"), clearPaperCardBtn = document.getElementById("clearPaperCardBtn");
+const paperImageInput = document.getElementById("paperImageInput"), paperPreview = document.getElementById("paperPreview"), previewWrap = document.getElementById("previewWrap");
+
+function pulseNumber(){numberEl.classList.remove("pop");void numberEl.offsetWidth;numberEl.classList.add("pop")}
+function setStatus(text){statusEl.textContent=text} function setRoomStatus(text){roomStatusEl.textContent=text}
+function getOrCreateClientId(){const key="sharedBingoClientId";let id=localStorage.getItem(key);if(!id){id="client-"+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem(key,id)}return id}
+function saveLocalSettings(){localStorage.setItem("sharedBingoPaperViewerConfig", JSON.stringify({roomId:roomIdInput.value}))}
+function loadLocalSettings(){const raw=localStorage.getItem("sharedBingoPaperViewerConfig");if(!raw)return;try{const d=JSON.parse(raw);if(d.roomId)roomIdInput.value=d.roomId}catch(e){}}
+function loadRoomIdFromUrl(){const p=new URLSearchParams(location.search);const room=p.get("room");if(room)roomIdInput.value=room}
+function buildInputGrid(){cardInputGrid.innerHTML="";for(let i=0;i<25;i++){const input=document.createElement("input");input.className="card-cell-input";input.type=i===12?"text":"number";input.placeholder=i===12?"FREE":"-";input.disabled=i===12;if(i===12)input.value="FREE";cardInputGrid.appendChild(input)}}
+function clearInputGrid(){[...cardInputGrid.querySelectorAll("input")].forEach((el,idx)=>{el.value=idx===12?"FREE":""})}
+function collectPaperCard(){const vals=[];const seen=new Set();const inputs=[...cardInputGrid.querySelectorAll("input")];for(let i=0;i<inputs.length;i++){if(i===12){vals.push("FREE");continue}const raw=inputs[i].value.trim();if(!raw)throw new Error((i+1)+"マス目が未入力です");const n=Number(raw);if(!Number.isInteger(n))throw new Error((i+1)+"マス目が整数ではありません");if(seen.has(n))throw new Error("同じ数字が重複しています: "+n);seen.add(n);vals.push(n)}return vals}
+async function applyPaperCard(){if(!roomRef||!roomDataCache){setStatus("先にルームに参加してください");return}try{const card=collectPaperCard();const currentVersion=roomDataCache.cardVersion||1;await update(roomRef,{["participants/"+clientId]:{joinedAt:Date.now(),card,cardVersion:currentVersion,signature:JSON.stringify(card)}});setStatus("紙カードを反映しました")}catch(e){alert(e.message||e)}}
+paperImageInput.addEventListener("change",()=>{const file=paperImageInput.files&&paperImageInput.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{paperPreview.src=String(reader.result);previewWrap.style.display="block"};reader.readAsDataURL(file)});
+function renderHistory(list){const arr=Array.isArray(list)?list:[];currentHistory=arr;historyCount.textContent="件数: "+arr.length;if(arr.length===0){historyEmpty.style.display="block";historyList.style.display="none";historyList.innerHTML="";return}historyEmpty.style.display="none";historyList.style.display="grid";historyList.innerHTML=arr.map(v=>'<div class="history-item">'+v+'</div>').join("")}
+function ensureLineOverlay(){let overlay=document.getElementById("lineOverlay");if(!overlay){overlay=document.createElement("div");overlay.id="lineOverlay";overlay.className="line-overlay";overlay.innerHTML='<svg class="line-svg" preserveAspectRatio="none"></svg>';bingoGrid.appendChild(overlay)}return overlay.querySelector("svg")}
+function analyzeCardProgress(card, calledSet){if(!Array.isArray(card)||card.length!==25)return{lines:0,near:0};const marked=card.map((v,i)=>i===12||calledSet.has(v));const patterns=[[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],[0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],[0,6,12,18,24],[4,8,12,16,20]];let lines=0,near=0;patterns.forEach(line=>{const c=line.filter(idx=>marked[idx]).length;if(c===5)lines++;else if(c===4)near++});return{lines,near}}
+function drawWinningLines(card, calledSet){const patterns=[[0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],[0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],[0,6,12,18,24],[4,8,12,16,20]];const grid=bingoGrid;if(!grid||!Array.isArray(card)||card.length!==25)return;const marked=card.map((v,i)=>i===12||calledSet.has(v));const svg=ensureLineOverlay();while(svg.firstChild)svg.removeChild(svg.firstChild);svg.setAttribute("viewBox",`0 0 ${grid.clientWidth} ${grid.clientHeight}`);patterns.forEach(line=>{if(!line.every(idx=>marked[idx]))return;const first=grid.children[line[0]], last=grid.children[line[4]];if(!first||!last)return;const x1=first.offsetLeft+first.offsetWidth/2, y1=first.offsetTop+first.offsetHeight/2, x2=last.offsetLeft+last.offsetWidth/2, y2=last.offsetTop+last.offsetHeight/2;const el=document.createElementNS("http://www.w3.org/2000/svg","line");el.setAttribute("x1",String(x1));el.setAttribute("y1",String(y1));el.setAttribute("x2",String(x2));el.setAttribute("y2",String(y2));const len=Math.hypot(x2-x1,y2-y1);el.style.strokeDasharray=String(len);el.style.strokeDashoffset=String(len);svg.appendChild(el)})}
+function unlockAudio(){try{if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume()}catch(e){}}
+function playTone(freq,start,duration,type,volume){if(!audioCtx)return;const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();osc.type=type;osc.frequency.setValueAtTime(freq,start);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(volume,start+.02);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);osc.connect(gain).connect(audioCtx.destination);osc.start(start);osc.stop(start+duration+.02)}
+function playReachSound(){try{unlockAudio();if(!audioCtx)return;const now=audioCtx.currentTime;playTone(659.25,now,.12,"triangle",.10);playTone(783.99,now+.10,.16,"triangle",.10)}catch(e){}}
+function playBingoSound(){try{unlockAudio();if(!audioCtx)return;const now=audioCtx.currentTime;[523.25,659.25,783.99,1046.5].forEach((freq,idx)=>playTone(freq,now+idx*.12,.28,idx<2?"triangle":"sine",.18))}catch(e){}}
+function showReachAnimation(count){const overlay=document.getElementById("reachOverlay"), text=document.getElementById("reachOverlayText");text.textContent=count>1?"REACH x"+count:"REACH!";overlay.classList.remove("show");void overlay.offsetWidth;overlay.classList.add("show");setTimeout(()=>overlay.classList.remove("show"),1150)}
+function showBingoAnimation(lines){const overlay=document.getElementById("bingoOverlay"), text=document.getElementById("bingoOverlayText");text.textContent=lines>1?"BINGO x"+lines:"BINGO!";overlay.classList.remove("show");void overlay.offsetWidth;overlay.classList.add("show");setTimeout(()=>overlay.classList.remove("show"),1600)}
+function celebrateReach(count){showReachAnimation(count);playReachSound()} function celebrateBingo(lines){showBingoAnimation(lines);playBingoSound()}
+function renderBingoCard(card){bingoGrid.innerHTML="";if(!Array.isArray(card)||card.length!==25){for(let i=0;i<25;i++){const div=document.createElement("div");div.className="cell";div.textContent=i===12?"FREE":"-";if(i===12)div.classList.add("free");bingoGrid.appendChild(div)}cardInfo.textContent="カード未取得";lineInfo.textContent="ライン: 0 / リーチ: 0 / ビンゴ: なし";return}const calledSet=new Set(currentHistory);card.forEach((value,idx)=>{const div=document.createElement("div");div.className="cell";if(idx===12){div.textContent="FREE";div.classList.add("free")}else{div.textContent=String(value);if(calledSet.has(value))div.classList.add("called")}bingoGrid.appendChild(div)});const progress=analyzeCardProgress(card,calledSet), lines=progress.lines, near=progress.near;cardInfo.textContent="参加者ID: "+clientId.slice(-8);lineInfo.textContent="ライン: "+lines+" / リーチ: "+near+" / ビンゴ: "+(lines>0?"あり":"なし");requestAnimationFrame(()=>requestAnimationFrame(()=>drawWinningLines(card,calledSet)));if(!hasCardBaseline){lastLineCount=lines;lastNearCount=near;hasCardBaseline=true}else{if(lines>lastLineCount&&lines>0)celebrateBingo(lines);else if(near>lastNearCount&&near>0)celebrateReach(near);lastLineCount=lines;lastNearCount=near}}
+async function ensureOwnCard(){if(!roomDataCache||!roomRef)return;const participants=roomDataCache.participants||{};const self=participants[clientId];if(self&&Array.isArray(self.card)&&self.card.length===25){renderBingoCard(self.card);return}setStatus("カード未登録です。紙カードを反映してください");renderBingoCard(null)}
+async function joinRoom(){const roomId=roomIdInput.value.trim();if(!roomId){setStatus("ルームIDを入力してください");return}currentRoomId=roomId;saveLocalSettings();if(roomRef&&roomUnsubscribe){roomUnsubscribe();roomUnsubscribe=null}roomRef=ref(db,"sharedBingoRooms/"+roomId);roomUnsubscribe=onValue(roomRef,async snapshot=>{const data=snapshot.val();roomDataCache=data;if(!data){numberEl.textContent="-";renderHistory([]);renderBingoCard(null);setRoomStatus("ルーム: "+roomId+"（未初期化）");return}numberEl.textContent=data.currentNumber==null?"-":String(data.currentNumber);pulseNumber();renderHistory(Array.isArray(data.history)?data.history:[]);const mode=data.uniqueMode?"重複なし":"通常";const running=data.isRunning?"動作中":"停止中";setRoomStatus("ルーム: "+roomId+" / "+(data.min??1)+"〜"+(data.max??75)+" / "+(data.intervalSec??5)+"秒 / "+mode);await ensureOwnCard();setStatus("閲覧中（"+running+"）")},error=>{console.error(error);setStatus("ルーム購読失敗")});setStatus("参加済み")}
+refreshCardBtn.addEventListener("click",()=>ensureOwnCard().catch(e=>{console.error(e);setStatus("カード再読込エラー")}));
+joinBtn.addEventListener("click",()=>{unlockAudio();joinRoom().catch(e=>{console.error(e);setStatus("参加エラー")})});
+applyPaperCardBtn.addEventListener("click",()=>{unlockAudio();applyPaperCard().catch(e=>{console.error(e);setStatus("反映エラー")})});
+clearPaperCardBtn.addEventListener("click",clearInputGrid);
+buildInputGrid();renderHistory([]);renderBingoCard(null);loadRoomIdFromUrl();loadLocalSettings();if(roomIdInput.value.trim())joinRoom().catch(e=>{console.error(e);setStatus("初期参加エラー")});
+</script>
+</body>
+</html>
